@@ -1,0 +1,30 @@
+name: Benchmark-Daten täglich aktualisieren
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Daten sammeln
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python collect_data.py --n 100
+      - name: Pushen
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add data/
+          git diff --staged --quiet || git commit -m "data: update $(date -u '+%Y-%m-%d')"
+          git push
