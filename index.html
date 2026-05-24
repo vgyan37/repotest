@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepoScope — OSS Project Health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06080f;--surface:#0c1018;--surface2:#111722;--border:#1c2535;--border2:#253045;--accent:#3dffa0;--accent-d:rgba(61,255,160,.08);--accent2:#5b9cf6;--amber:#f5c842;--red:#f75f6c;--text:#dce6f5;--muted:#566880;--mono:'IBM Plex Mono',monospace;--sans:'DM Sans',sans-serif;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(61,255,160,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(61,255,160,.018) 1px,transparent 1px);background-size:48px 48px;}
+nav{position:sticky;top:0;z-index:200;background:rgba(6,8,15,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:.65rem 2rem;}
+.nav-logo{font-family:var(--mono);font-size:.95rem;font-weight:700;text-decoration:none;letter-spacing:-.02em;}
+.nav-logo b{color:var(--accent);}.nav-logo span{color:var(--text);}
+.nav-links{display:flex;gap:.25rem;}
+.nav-link{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;color:var(--muted);padding:.4rem .9rem;border-radius:6px;transition:background .2s,color .2s;}
+.nav-link:hover{background:var(--surface2);color:var(--text);}
+.nav-link.active{background:var(--accent-d);color:var(--accent);}
+header{text-align:center;padding:3.5rem 1rem 2rem;position:relative;z-index:1;}
+.wordmark{font-family:var(--mono);font-size:clamp(2.6rem,8vw,5rem);font-weight:700;letter-spacing:-.05em;line-height:1;}
+.wordmark b{color:var(--accent);text-shadow:0 0 60px rgba(61,255,160,.35);}
+.wordmark span{color:var(--text);}
+.sub{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:.5rem;}
+.bench-status{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:.35rem;}
+.bench-status .ok{color:var(--accent);}
+.bench-status .err{color:var(--amber);}
+.input-wrap{max-width:680px;margin:0 auto 3rem;padding:0 1rem;position:relative;z-index:1;}
+.input-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem 2.25rem;}
+.input-lbl{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:.65rem;}
+.input-row{display:flex;gap:.65rem;}
+input[type=text],input[type=password]{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.8rem 1.1rem;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none;transition:border-color .2s,box-shadow .2s;}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,255,160,.1);}
+input::placeholder{color:var(--muted);font-size:.78rem;}
+.btn{background:var(--accent);color:var(--bg);border:none;border-radius:9px;padding:.8rem 1.5rem;font-family:var(--mono);font-size:.76rem;font-weight:700;letter-spacing:.04em;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.btn:hover{background:#5fffb5;transform:translateY(-1px);box-shadow:0 6px 20px rgba(61,255,160,.25);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+details.tok{margin-top:.85rem;}
+details.tok>summary{list-style:none;cursor:pointer;font-family:var(--mono);font-size:.7rem;color:var(--muted);padding:.3rem 0;transition:color .2s;}
+details.tok[open]>summary,details.tok>summary:hover{color:var(--accent);}
+.tok-body{margin-top:.65rem;display:flex;flex-direction:column;gap:.4rem;}
+.tok-hint{font-family:var(--mono);font-size:.66rem;color:var(--muted);line-height:1.55;}
+.tok-hint a{color:var(--accent2);text-decoration:none;}
+.hidden{display:none!important;}
+#loadingState{text-align:center;padding:5rem 1rem;position:relative;z-index:1;}
+.spinner{width:48px;height:48px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1.25rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-text{font-family:var(--mono);font-size:.78rem;color:var(--muted);}
+.ld-endpoint{font-family:var(--mono);font-size:.65rem;color:var(--border2);margin-top:.35rem;}
+#errorState{max-width:440px;margin:0 auto;padding:2rem 1rem;position:relative;z-index:1;}
+.err-box{background:rgba(247,95,108,.07);border:1px solid rgba(247,95,108,.2);border-radius:12px;padding:1.75rem;text-align:center;}
+.err-box h3{color:var(--red);font-family:var(--mono);font-size:.9rem;margin-bottom:.5rem;}
+.err-box p{color:var(--muted);font-size:.82rem;line-height:1.5;}
+.btn-back{margin-top:1rem;background:none;border:1px solid var(--border);border-radius:7px;padding:.55rem 1.2rem;color:var(--muted);font-family:var(--mono);font-size:.72rem;cursor:pointer;transition:all .2s;}
+.btn-back:hover{border-color:var(--accent);color:var(--accent);}
+#results{max-width:980px;margin:0 auto;padding:0 1rem 6rem;position:relative;z-index:1;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.repo-hdr{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.6rem 1.75rem;display:flex;align-items:flex-start;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem;opacity:0;animation:fadeUp .4s .05s ease forwards;}
+.r-avatar{width:48px;height:48px;border-radius:9px;flex-shrink:0;}
+.r-info{flex:1;min-width:180px;}
+.r-name{font-size:1.2rem;font-weight:700;margin-bottom:.25rem;}
+.r-name a{color:var(--text);text-decoration:none;transition:color .2s;}
+.r-name a:hover{color:var(--accent);}
+.r-desc{color:var(--muted);font-size:.82rem;line-height:1.5;margin-bottom:.6rem;}
+.tags{display:flex;flex-wrap:wrap;gap:.35rem;}
+.tag{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.14rem .5rem;font-family:var(--mono);font-size:.64rem;color:var(--muted);}
+.tag-l{color:var(--accent2);border-color:rgba(91,156,246,.2);}
+.tag-r{color:var(--amber);border-color:rgba(245,200,66,.2);}
+.tag-a{color:var(--red);border-color:rgba(247,95,108,.2);}
+.r-stats{display:flex;gap:1.75rem;flex-wrap:wrap;}
+.rs{text-align:center;}
+.rs-v{font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--accent);display:block;}
+.rs-l{font-family:var(--mono);font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.overall-row{display:flex;align-items:center;gap:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.6rem 1.75rem;margin-bottom:1.25rem;opacity:0;animation:fadeUp .4s .1s ease forwards;}
+.overall-ring{flex-shrink:0;}
+.overall-meta{flex:1;}
+.overall-title{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem;}
+.overall-score{font-family:var(--mono);font-size:2.5rem;font-weight:700;line-height:1;}
+.overall-grade{display:inline-block;font-family:var(--mono);font-size:.8rem;padding:.15rem .5rem;border-radius:5px;margin-left:.6rem;}
+.overall-formula{font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-top:.4rem;line-height:1.6;}
+.formula-pill{display:inline-block;font-size:.64rem;padding:.1rem .4rem;border-radius:4px;margin:0 .1rem;}
+.pillars-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:.75rem;}
+@media(max-width:700px){.pillars-row{grid-template-columns:1fr;}}
+.pillar-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem 1.25rem;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .2s;opacity:0;animation:fadeUp .4s ease forwards;user-select:none;position:relative;overflow:hidden;}
+.pillar-card::before{content:'';position:absolute;inset:0;border-radius:14px;background:var(--accent-d);opacity:0;transition:opacity .2s;}
+.pillar-card:nth-child(1){animation-delay:.15s;}
+.pillar-card:nth-child(2){animation-delay:.2s;}
+.pillar-card:nth-child(3){animation-delay:.25s;}
+.pillar-card.active{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent),0 8px 32px rgba(61,255,160,.12);}
+.pillar-card.active::before{opacity:1;}
+.pillar-card:hover:not(.active){border-color:var(--border2);transform:translateY(-1px);}
+.pc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;position:relative;}
+.pc-icon{font-size:1.3rem;}
+.pc-weight{font-family:var(--mono);font-size:.62rem;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;color:var(--muted);}
+.pc-ring{position:relative;margin:.9rem auto .6rem;}
+.pc-ring.sm{width:88px;height:88px;}
+.pc-ring svg{width:100%;height:100%;transform:rotate(-90deg);display:block;}
+.pc-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.pc-num{font-family:var(--mono);font-weight:700;font-size:1.35rem;line-height:1;}
+.pc-grade{font-family:var(--mono);font-size:.6rem;margin-top:.15rem;}
+.pc-lbl{font-size:.76rem;font-weight:600;text-align:center;margin-bottom:.2rem;}
+.pc-chaoss{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-align:center;line-height:1.4;}
+.pc-chevron{position:absolute;bottom:.85rem;right:1rem;font-family:var(--mono);font-size:.65rem;color:var(--muted);transition:transform .25s;}
+.pillar-card.active .pc-chevron{transform:rotate(180deg);color:var(--accent);}
+.kpi-panel{background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:0;margin-bottom:1rem;overflow:hidden;max-height:0;opacity:0;transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .3s,padding .3s;}
+.kpi-panel.open{max-height:600px;opacity:1;padding:1.75rem 2rem;}
+.kpi-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.5rem;}
+.kpi-panel-title{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);}
+.kpi-chaoss-badge{font-family:var(--mono);font-size:.62rem;background:rgba(91,156,246,.08);border:1px solid rgba(91,156,246,.2);color:var(--accent2);border-radius:6px;padding:.2rem .7rem;}
+.kpi-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+.kpi-table th{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.45rem .75rem;text-align:left;border-bottom:1px solid var(--border);font-weight:400;}
+.kpi-table th:last-child,.kpi-table td:last-child{text-align:right;}
+.kpi-table td{padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+.kpi-table tr:last-child td{border-bottom:none;}
+.kpi-name{font-weight:600;font-size:.8rem;display:block;}
+.kpi-endpoint{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:.15rem;}
+.kpi-val{font-family:var(--mono);font-size:.82rem;font-weight:700;}
+.kpi-bench{font-family:var(--mono);font-size:.75rem;color:var(--muted);}
+.status-ok{display:inline-flex;align-items:center;gap:.3rem;color:var(--accent);font-family:var(--mono);font-size:.7rem;}
+.status-no{display:inline-flex;align-items:center;gap:.3rem;color:var(--red);font-family:var(--mono);font-size:.7rem;}
+.status-na{color:var(--muted);font-family:var(--mono);font-size:.7rem;}
+.kpi-bar-wrap{display:flex;align-items:center;gap:.4rem;min-width:80px;}
+.kpi-bar-bg{flex:1;height:4px;background:var(--border);border-radius:999px;overflow:hidden;}
+.kpi-bar-fill{height:100%;border-radius:999px;transition:width 1s ease;}
+.kpi-weight-cell{font-family:var(--mono);font-size:.7rem;color:var(--muted);}
+.kpi-null{color:var(--muted);font-family:var(--mono);font-size:.72rem;font-style:italic;}
+.api-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;opacity:0;animation:fadeUp .4s .3s ease forwards;}
+.api-title{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2);margin-bottom:1rem;}
+.api-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;}
+@media(max-width:600px){.api-grid{grid-template-columns:1fr;}}
+.api-row{display:flex;gap:.75rem;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;}
+.api-method{font-family:var(--mono);font-size:.6rem;font-weight:700;background:rgba(91,156,246,.12);color:var(--accent2);border-radius:4px;padding:.1rem .35rem;flex-shrink:0;margin-top:.05rem;}
+.api-url{font-family:var(--mono);font-size:.68rem;color:var(--text);word-break:break-all;line-height:1.5;}
+.api-kpis{font-size:.66rem;color:var(--muted);margin-top:.15rem;line-height:1.4;}
+.suggest-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;opacity:0;animation:fadeUp .4s .35s ease forwards;}
+.sug-title{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:1rem;}
+.sug-item{display:flex;gap:.9rem;align-items:flex-start;padding:.75rem .85rem;background:var(--surface2);border:1px solid var(--border);border-radius:9px;margin-bottom:.6rem;}
+.sug-item:last-child{margin-bottom:0;}
+.sug-icon{font-size:1.1rem;flex-shrink:0;margin-top:.1rem;}
+.sug-body{font-size:.8rem;line-height:1.5;color:var(--muted);}
+.sug-body strong{color:var(--text);display:block;margin-bottom:.05rem;}
+.sug-pillar{font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-top:.1rem;}
+.method-section{max-width:980px;margin:0 auto 5rem;padding:0 1rem;position:relative;z-index:1;}
+.method-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem 2.25rem;}
+.method-card h2{font-size:1.05rem;font-weight:700;margin-bottom:.3rem;}
+.method-intro{font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.6;}
+.method-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+@media(max-width:680px){.method-grid{grid-template-columns:1fr;}}
+.mbox{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.1rem;}
+.mbox-head{display:flex;align-items:center;gap:.5rem;font-weight:700;margin-bottom:.4rem;font-size:.85rem;}
+.mwt{font-family:var(--mono);font-size:.6rem;background:var(--accent-d);color:var(--accent);padding:.08rem .4rem;border-radius:4px;}
+.mbox p{font-size:.74rem;color:var(--muted);line-height:1.55;}
+footer{text-align:center;padding:1.75rem 1rem 2.5rem;font-family:var(--mono);font-size:.62rem;color:var(--muted);position:relative;z-index:1;border-top:1px solid var(--border);}
+footer a{color:var(--accent2);text-decoration:none;}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="index.html"><b>Repo</b><span>Scope</span></a>
+  <div class="nav-links">
+    <a class="nav-link active" href="index.html">🔍 Analyzer</a>
+    <a class="nav-link" href="analysis.html">📊 Top-100 Analyse</a>
+  </div>
+</nav>
+
+<header>
+  <div class="wordmark"><b>Repo</b><span>Scope</span></div>
+  <p class="sub">OSS Project Health · GitHub REST API · CHAOSS-Framework</p>
+  <p class="bench-status" id="benchStatus">Lade Benchmark-Daten…</p>
+</header>
+
+<div class="input-wrap">
+  <div class="input-card">
+    <label class="input-lbl" for="repoIn">▸ GitHub Repository URL</label>
+    <div class="input-row">
+      <input type="text" id="repoIn" placeholder="https://github.com/facebook/react  oder  facebook/react">
+      <button class="btn" id="analyzeBtn" onclick="analyze()">Analysieren →</button>
+    </div>
+    <details class="tok">
+      <summary>⚡ Personal Access Token (empfohlen)</summary>
+      <div class="tok-body">
+        <input type="password" id="tokenIn" placeholder="ghp_xxxxxxxxxxxxxxxx">
+        <p class="tok-hint">Ohne Token: 60 Req/h · Mit Token: 5.000 Req/h<br>
+          <a href="https://github.com/settings/tokens/new?scopes=public_repo" target="_blank">Token erstellen</a> — nur <code>public_repo</code> Scope nötig.</p>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div id="loadingState" class="hidden">
+  <div class="spinner"></div>
+  <p class="ld-text" id="ldText">Lade Daten…</p>
+  <p class="ld-endpoint" id="ldSub">&nbsp;</p>
+</div>
+
+<div id="errorState" class="hidden">
+  <div class="err-box">
+    <h3>⚠ Fehler</h3>
+    <p id="errMsg"></p>
+    <button class="btn-back" onclick="reset()">← Zurück</button>
+  </div>
+</div>
+
+<section id="results" class="hidden">
+  <div class="repo-hdr"   id="repoHdr"></div>
+  <div class="overall-row" id="overallRow"></div>
+  <div class="pillars-row" id="pillarsRow"></div>
+  <div class="kpi-panel"   id="kpiPanel"></div>
+  <div class="api-card"    id="apiCard"></div>
+  <div class="suggest-card" id="sugCard"></div>
+</section>
+
+<div class="method-section">
+  <div class="method-card">
+    <h2>📐 Scoring-Methodik</h2>
+    <p class="method-intro">
+      Drei-Säulen-System nach CHAOSS-Metriken-Modellen. Benchmarks aus den Top-100 Open-Source-Projekten
+      auf GitHub (täglich via GitHub Action aktualisiert). Jede Kennzahl wird per Ratio-Normalisierung
+      gegen den Median der Top-100 verglichen: Score = min(100, Wert / Median × 100).
+    </p>
+    <div class="method-grid">
+      <div class="mbox">
+        <div class="mbox-head">⚡ Aktivität &amp; Community <span class="mwt">40%</span></div>
+        <p>Commit-Häufigkeit (50%), Tage seit letztem Commit (30%), Anzahl Contributors (20%).
+        Direktester Indikator für Projekt-Gesundheit — aktiver Code bedeutet aktive Entwicklung.</p>
+      </div>
+      <div class="mbox">
+        <div class="mbox-head">🔧 Reaktionsfähigkeit &amp; Wartung <span class="mwt">35%</span></div>
+        <p>Issue-Schließungsrate (25%), Release-Häufigkeit (25%), Ø Schließzeit (25%),
+        Issue-Engagement (15%), Fehlerbehebungs-Produktivität (10%).
+        Misst wie professionell das Projekt gewartet wird.</p>
+      </div>
+      <div class="mbox">
+        <div class="mbox-head">📡 Reichweite &amp; Dokumentation <span class="mwt">25%</span></div>
+        <p>Fork-Ratio (35%), Dokumentation README+CONTRIBUTING (35%),
+        Stars/Alter log-skaliert (30%). Zeigt Verbreitung und Zugänglichkeit des Projekts.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  RepoScope · Uni-Projekt · Valentina Gyan ·
+  Benchmark: Median der Top-100 GitHub-Repos (täglich aktualisiert) ·
+  <a href="https://docs.github.com/en/rest" target="_blank">GitHub REST API v3</a>
+</footer>
+
+<script>
+/* ================================================================
+   CONFIG
+================================================================ */
+const API = 'https://api.github.com';
+let MEDIANS  = null;
+let activePillar = null;
+let apiLog = [];
+
+const PILLARS = [
+  {
+    id:'p1', icon:'⚡', label:'Aktivität & Community', weight:.40,
+    color:'#3dffa0',
+    chaoss:'Community Activity · Starter Health · Collab Dev Index',
+    kpis:[
+      {id:'commits30',    label:'Commit-Häufigkeit (30 Tage)',      endpoint:'/stats/commit_activity',           w:.50, dir:'more', fmt:v=>v!=null?Math.round(v)+' Commits':'—'},
+      {id:'daysInactive', label:'Tage seit letztem Commit ↓',       endpoint:'/repos (pushed_at)',               w:.30, dir:'less', fmt:v=>v!=null?v+' Tage':'—'},
+      {id:'contributors', label:'Anzahl Contributors',              endpoint:'/contributors?per_page=100',       w:.20, dir:'more', fmt:v=>v!=null?v+' Personen':'—'},
+    ]
+  },
+  {
+    id:'p2', icon:'🔧', label:'Reaktionsfähigkeit & Wartung', weight:.35,
+    color:'#5b9cf6',
+    chaoss:'Starter Health · Viability: Governance · Dev Responsiveness',
+    kpis:[
+      {id:'closeRate',   label:'Issue-Schließungsrate',             endpoint:'/issues?state=all&per_page=100',   w:.25, dir:'more', fmt:v=>v!=null?(v*100).toFixed(1)+'%':'—'},
+      {id:'relFreq',     label:'Ø Tage zwischen Releases ↓',        endpoint:'/releases?per_page=20',            w:.25, dir:'less', fmt:v=>v!=null?v.toFixed(1)+' Tage':'—'},
+      {id:'avgClose',    label:'Ø Issue-Schließzeit ↓',             endpoint:'/issues?state=all',                w:.25, dir:'less', fmt:v=>v!=null?v.toFixed(1)+' Tage':'—'},
+      {id:'avgComments', label:'Issue-Engagement (Comments)',       endpoint:'/issues?state=all',                w:.15, dir:'more', fmt:v=>v!=null?v.toFixed(1)+' Ø':'—'},
+      {id:'fehlerProd',  label:'Fehlerbehebungs-Produktivität',     endpoint:'closed_issues / commits',          w:.10, dir:'more', fmt:v=>v!=null?v.toFixed(3):'—'},
+    ]
+  },
+  {
+    id:'p3', icon:'📡', label:'Reichweite & Dokumentation', weight:.25,
+    color:'#f5c842',
+    chaoss:'Project Engagement · Viability: Community · Project Awareness',
+    kpis:[
+      {id:'forkRatio',  label:'Fork-Ratio (Forks/Stars)',           endpoint:'/repos (forks/stars)',             w:.35, dir:'more', fmt:v=>v!=null?(v*100).toFixed(1)+'%':'—'},
+      {id:'doku',       label:'Dokumentation (README+CONTRIBUTING)',endpoint:'/readme + /contents/CONTRIBUTING.md', w:.35, dir:'bool', fmt:v=>v!=null?v+' Pkt.':'—'},
+      {id:'starsTage',  label:'Stars/Alter (log-skaliert)',         endpoint:'/repos (stars / age_days)',        w:.30, dir:'log',  fmt:v=>v!=null?v.toFixed(2)+' St/T':'—'},
+    ]
+  }
+];
+
+const KPI_DIR = {};
+PILLARS.forEach(p=>p.kpis.forEach(k=>{KPI_DIR[k.id]=k.dir;}));
+
+/* ================================================================
+   LOAD BENCHMARKS FROM data/benchmarks.json
+================================================================ */
+async function loadBenchmarks(){
+  try{
+    const r = await fetch('data/benchmarks.json');
+    if(!r.ok) throw new Error('nicht gefunden');
+    const d = await r.json();
+    MEDIANS = d.medians;
+    const date = new Date(d.generated_at).toLocaleDateString('de-DE');
+    document.getElementById('benchStatus').innerHTML =
+      `<span class="ok">✓ Median-Benchmark geladen</span> · Top-${d.sample_size} Repos · ${date}`;
+  }catch(e){
+    document.getElementById('benchStatus').innerHTML =
+      `<span class="err">⚠ Benchmark nicht geladen</span> · GitHub Action ausführen`;
+  }
+}
+
+/* ================================================================
+   API HELPERS
+================================================================ */
+function tok(){const t=document.getElementById('tokenIn').value.trim();const h={'Accept':'application/vnd.github+json'};if(t)h['Authorization']='Bearer '+t;return h;}
+
+async function ghFetch(path,retries=2){
+  const h=tok();
+  for(let i=0;i<=retries;i++){
+    const r=await fetch(API+path,{headers:h});
+    if(r.status===200){apiLog.push(path);return r.json();}
+    if(r.status===202){await sleep(2500);continue;}
+    if(r.status===404)return null;
+    if(r.status===403){const d=await r.json().catch(()=>({}));throw new Error('Rate Limit: '+(d.message||'Token eingeben für mehr Anfragen'));}
+    if(i===retries)return null;
+    await sleep(800);
+  }
+  return null;
+}
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ================================================================
+   FETCH ALL KPIs
+================================================================ */
+async function fetchKpis(owner,name){
+  setLd('Basis-Daten laden…',`/repos/${owner}/${name}`);
+  const base=await ghFetch(`/repos/${owner}/${name}`);
+  if(!base)throw new Error(`Repo "${owner}/${name}" nicht gefunden oder privat.`);
+
+  setLd('Commit-Aktivität laden…',`/repos/${owner}/${name}/stats/commit_activity`);
+  const activity=await ghFetch(`/repos/${owner}/${name}/stats/commit_activity`);
+
+  setLd('README prüfen…',`/repos/${owner}/${name}/readme`);
+  const readme=await ghFetch(`/repos/${owner}/${name}/readme`);
+
+  setLd('CONTRIBUTING prüfen…',`/repos/${owner}/${name}/contents/CONTRIBUTING.md`);
+  const contributing=await ghFetch(`/repos/${owner}/${name}/contents/CONTRIBUTING.md`);
+
+  setLd('Releases laden…',`/repos/${owner}/${name}/releases?per_page=20`);
+  const releases=await ghFetch(`/repos/${owner}/${name}/releases?per_page=20`);
+
+  setLd('Issues laden…',`/repos/${owner}/${name}/issues?state=all&per_page=100`);
+  const issues=await ghFetch(`/repos/${owner}/${name}/issues?state=all&per_page=100`);
+
+  setLd('Contributors laden…',`/repos/${owner}/${name}/contributors?per_page=100`);
+  const contribs=await ghFetch(`/repos/${owner}/${name}/contributors?per_page=100`);
+
+  // Process
+  const stars=base.stargazers_count, forks=base.forks_count;
+  const age=Math.max(1,Math.floor((Date.now()-new Date(base.created_at))/864e5));
+  const pushed=Math.max(0,Math.floor((Date.now()-new Date(base.pushed_at))/864e5));
+
+  let commits30=null;
+  if(Array.isArray(activity)&&activity.length>=4)
+    commits30=activity.slice(-4).reduce((s,w)=>s+(w.total||0),0);
+
+  let closeRate=null,avgClose=null,avgComments=null,fehlerProd=null;
+  if(Array.isArray(issues)&&issues.length>0){
+    const real=issues.filter(i=>!i.pull_request);
+    if(real.length>0){
+      const closed=real.filter(i=>i.state==='closed');
+      closeRate=closed.length/real.length;
+      const times=closed.filter(i=>i.closed_at&&i.created_at).map(i=>(new Date(i.closed_at)-new Date(i.created_at))/864e5).filter(d=>d>=0);
+      avgClose=times.length?times.reduce((a,b)=>a+b,0)/times.length:null;
+      avgComments=real.reduce((s,i)=>s+(i.comments||0),0)/real.length;
+      if(commits30!==null&&commits30>0)fehlerProd=closed.length/commits30;
+    }
+  }
+
+  let relFreq=null;
+  if(Array.isArray(releases)){
+    const stable=releases.filter(r=>!r.draft&&!r.prerelease&&r.published_at).map(r=>new Date(r.published_at).getTime()).sort((a,b)=>a-b);
+    if(stable.length>=2){
+      const diffs=[];for(let i=1;i<stable.length;i++)diffs.push((stable[i]-stable[i-1])/864e5);
+      relFreq=diffs.reduce((a,b)=>a+b,0)/diffs.length;
+    }
+  }
+
+  const readmeOk=!!readme, contribOk=!!contributing;
+
+  return {
+    meta:{
+      fullName:base.full_name, htmlUrl:base.html_url,
+      description:base.description, language:base.language,
+      license:base.license?.spdx_id||base.license?.name,
+      topics:base.topics||[], stars, forks,
+      openIssues:base.open_issues_count,
+      watchers:base.subscribers_count||base.watchers_count||0,
+      age, archived:base.archived,
+      readmeOk, contribOk,
+    },
+    kpis:{
+      commits30, daysInactive:pushed,
+      contributors:Array.isArray(contribs)?contribs.length:null,
+      closeRate, relFreq, avgClose, avgComments, fehlerProd,
+      forkRatio:stars>0?forks/stars:0,
+      doku:(readmeOk?60:0)+(contribOk?40:0),
+      starsTage:stars/age,
+    }
+  };
+}
+
+/* ================================================================
+   SCORING
+================================================================ */
+function scoreKpi(key,val,medians){
+  if(val===null||val===undefined)return null;
+  const med=medians?.[key];
+  if(med===null||med===undefined)return null;
+  const d=KPI_DIR[key];
+  if(d==='more')return med>0?Math.min(100,Math.round(val/med*100)):null;
+  if(d==='less')return val===0?100:(med>0?Math.min(100,Math.round(med/val*100)):null);
+  if(d==='bool')return val;
+  if(d==='log'){if(val<=0||med<=0)return null;const lv=Math.log10(val),lm=Math.log10(med);return lm>0?Math.min(100,Math.round(lv/lm*100)):null;}
+  return null;
+}
+
+function computeScores(kpis,medians){
+  const pillar=pid=>{
+    const p=PILLARS.find(x=>x.id===pid);
+    let pts=0,wt=0;
+    p.kpis.forEach(k=>{const s=scoreKpi(k.id,kpis[k.id],medians);if(s!==null){pts+=s*k.w;wt+=k.w;}});
+    return wt>0?Math.round(pts/wt):null;
+  };
+  const p1=pillar('p1'),p2=pillar('p2'),p3=pillar('p3');
+  const parts=[[p1,.4],[p2,.35],[p3,.25]].filter(([s])=>s!==null);
+  const overall=parts.length?Math.round(parts.reduce((a,[s,w])=>a+s*w,0)/parts.reduce((a,[,w])=>a+w,0)):null;
+  return{p1,p2,p3,overall};
+}
+
+/* ================================================================
+   SVG RING
+================================================================ */
+function svgRing(score,size,sw,col){
+  const r=size/2-sw,circ=2*Math.PI*r,fill=(Math.max(0,score||0)/100)*circ;
+  return`<svg viewBox="0 0 ${size} ${size}"><circle fill="none" stroke="var(--border)" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${sw}"/><circle fill="none" stroke="${col}" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ-fill}" style="filter:drop-shadow(0 0 6px ${col}66);transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"/></svg>`;
+}
+
+function sc(s){return s>=70?'#3dffa0':s>=45?'#f5c842':'#f75f6c';}
+function gr(s){return s>=90?'A+':s>=80?'A':s>=70?'B+':s>=60?'B':s>=50?'C':s>=40?'D':'F';}
+function fmt(n){if(n===null||n===undefined)return'—';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(Math.round(n));}
+
+/* ================================================================
+   RENDER
+================================================================ */
+function renderRepo(meta){
+  const[owner]=meta.fullName.split('/');
+  document.getElementById('repoHdr').innerHTML=`
+    <img class="r-avatar" src="https://github.com/${owner}.png?size=96" alt="${owner}" loading="lazy">
+    <div class="r-info">
+      <div class="r-name"><a href="${meta.htmlUrl}" target="_blank">${meta.fullName}</a>
+        ${meta.archived?'<span class="tag tag-a" style="margin-left:.5rem;vertical-align:middle">ARCHIVIERT</span>':''}</div>
+      <p class="r-desc">${meta.description||'<em style="opacity:.5">Keine Beschreibung.</em>'}</p>
+      <div class="tags">
+        ${meta.language?`<span class="tag tag-l">${meta.language}</span>`:''}
+        ${meta.license?`<span class="tag tag-r">${meta.license}</span>`:''}
+        ${meta.readmeOk?'<span class="tag" style="color:#3dffa0;border-color:rgba(61,255,160,.2)">README ✓</span>':'<span class="tag tag-a">README ✗</span>'}
+        ${meta.contribOk?'<span class="tag" style="color:#3dffa0;border-color:rgba(61,255,160,.2)">CONTRIBUTING ✓</span>':''}
+        ${(meta.topics||[]).slice(0,4).map(t=>`<span class="tag">${t}</span>`).join('')}
+      </div>
+    </div>
+    <div class="r-stats">
+      <div class="rs"><span class="rs-v">${fmt(meta.stars)}</span><span class="rs-l">Stars</span></div>
+      <div class="rs"><span class="rs-v">${fmt(meta.forks)}</span><span class="rs-l">Forks</span></div>
+      <div class="rs"><span class="rs-v">${fmt(meta.openIssues)}</span><span class="rs-l">Issues</span></div>
+      <div class="rs"><span class="rs-v">${fmt(meta.watchers)}</span><span class="rs-l">Watchers</span></div>
+      <div class="rs"><span class="rs-v">${(meta.age/365).toFixed(1)}J</span><span class="rs-l">Alter</span></div>
+    </div>`;
+}
+
+function renderOverall(scores){
+  const t=scores.overall,col=sc(t),grd=gr(t);
+  const gBg=t>=70?'rgba(61,255,160,.12)':t>=45?'rgba(245,200,66,.12)':'rgba(247,95,108,.12)';
+  document.getElementById('overallRow').innerHTML=`
+    <div class="overall-ring">
+      <div style="position:relative;width:110px;height:110px">
+        ${svgRing(t,110,10,col)}
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span class="overall-score" style="color:${col}">${t??'—'}</span>
+        </div>
+      </div>
+    </div>
+    <div class="overall-meta">
+      <div class="overall-title">▸ Gesamt-Score · OSS Project Health · Median-Benchmark</div>
+      <div style="display:flex;align-items:center;gap:.35rem;margin-bottom:.35rem">
+        <span class="overall-score" style="color:${col}">${t??'—'}</span>
+        <span class="overall-grade" style="background:${gBg};color:${col}">${grd}</span>
+      </div>
+      <div class="overall-formula">
+        <span class="formula-pill" style="background:rgba(61,255,160,.1);color:#3dffa0">0,40</span> × P1=${scores.p1??'—'}
+        + <span class="formula-pill" style="background:rgba(91,156,246,.1);color:#5b9cf6">0,35</span> × P2=${scores.p2??'—'}
+        + <span class="formula-pill" style="background:rgba(245,200,66,.1);color:#f5c842">0,25</span> × P3=${scores.p3??'—'}
+      </div>
+    </div>`;
+}
+
+function renderPillars(kpis,scores){
+  document.getElementById('pillarsRow').innerHTML=PILLARS.map(p=>{
+    const s=scores[p.id];
+    const col=s!=null?(s>=70?p.color:s>=45?'#f5c842':'#f75f6c'):p.color;
+    return`<div class="pillar-card" onclick="togglePillar('${p.id}',event)" id="pc-${p.id}">
+      <div class="pc-head">
+        <span class="pc-icon">${p.icon}</span>
+        <span class="pc-weight">${Math.round(p.weight*100)}%</span>
+      </div>
+      <div class="pc-ring sm" style="width:88px;height:88px">
+        ${svgRing(s??0,88,7,col)}
+        <div class="pc-ring-center">
+          <span class="pc-num" style="color:${col}">${s??'—'}</span>
+          <span class="pc-grade" style="color:${col}">${s!=null?gr(s):''}</span>
+        </div>
+      </div>
+      <div class="pc-lbl">${p.label}</div>
+      <div class="pc-chaoss">${p.chaoss}</div>
+      <span class="pc-chevron">▼</span>
+    </div>`;
+  }).join('');
+}
+
+function togglePillar(pid,e){
+  e?.stopPropagation();
+  const panel=document.getElementById('kpiPanel');
+  if(activePillar===pid){
+    activePillar=null;
+    panel.classList.remove('open');
+    document.querySelectorAll('.pillar-card').forEach(c=>c.classList.remove('active'));
+    return;
+  }
+  activePillar=pid;
+  document.querySelectorAll('.pillar-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('pc-'+pid).classList.add('active');
+  renderKpiPanel(pid);
+  panel.classList.add('open');
+  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+}
+
+function renderKpiPanel(pid){
+  const p=PILLARS.find(x=>x.id===pid);
+  const rows=p.kpis.map(k=>{
+    const val=window._kpis[k.id];
+    const med=MEDIANS?.[k.id];
+    const ks=scoreKpi(k.id,val,MEDIANS);
+    const col=ks!=null?(ks>=70?'#3dffa0':ks>=45?'#f5c842':'#f75f6c'):'var(--muted)';
+    const valStr=k.fmt(val);
+    const medStr=med!=null?k.fmt(med):'N/A';
+    let statusEl;
+    if(k.dir==='bool'){
+      statusEl=val>=60?'<span class="status-ok">✓ README vorhanden</span>':'<span class="status-no">✗ README fehlt</span>';
+      if(val>=100)statusEl='<span class="status-ok">✓ README + CONTRIBUTING</span>';
+    } else if(ks===null){
+      statusEl='<span class="status-na">keine Daten</span>';
+    } else {
+      statusEl=`<div class="kpi-bar-wrap"><div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:${ks}%;background:${col}"></div></div><span class="kpi-val" style="color:${col};min-width:28px;text-align:right">${ks}</span></div>`;
+    }
+    return`<tr>
+      <td><span class="kpi-name">${k.label}</span><span class="kpi-endpoint">${k.endpoint}</span></td>
+      <td class="kpi-val" style="color:var(--text)">${valStr}</td>
+      <td class="kpi-bench">${medStr}</td>
+      <td>${statusEl}</td>
+      <td class="kpi-weight-cell">${Math.round(k.w*100)}%</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('kpiPanel').innerHTML=`
+    <div class="kpi-panel-head">
+      <span class="kpi-panel-title">▸ ${p.icon} ${p.label}</span>
+      <span class="kpi-chaoss-badge">CHAOSS: ${p.chaoss}</span>
+    </div>
+    <table class="kpi-table">
+      <thead><tr><th>Kennzahl</th><th>Dein Wert</th><th>Median Top-100</th><th>Score</th><th>Gewicht</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderApiCard(){
+  const entries=[
+    {url:`/repos/{owner}/{repo}`,kpis:'Stars, Forks, Alter, Sprache, Lizenz'},
+    {url:`/repos/{owner}/{repo}/stats/commit_activity`,kpis:'Commits letzte 30 Tage'},
+    {url:`/repos/{owner}/{repo}/readme`,kpis:'README vorhanden'},
+    {url:`/repos/{owner}/{repo}/contents/CONTRIBUTING.md`,kpis:'CONTRIBUTING vorhanden'},
+    {url:`/repos/{owner}/{repo}/releases?per_page=20`,kpis:'Release-Frequenz'},
+    {url:`/repos/{owner}/{repo}/issues?state=all&per_page=100`,kpis:'Close-Rate, Schließzeit, Engagement'},
+    {url:`/repos/{owner}/{repo}/contributors?per_page=100`,kpis:'Anzahl Contributors'},
+  ];
+  document.getElementById('apiCard').innerHTML=`
+    <div class="api-title">▸ Verwendete API-Endpunkte</div>
+    <div class="api-grid">
+      ${entries.map(e=>`<div class="api-row">
+        <span class="api-method">GET</span>
+        <div><div class="api-url">${e.url}</div><div class="api-kpis">${e.kpis}</div></div>
+      </div>`).join('')}
+    </div>`;
+}
+
+function renderSuggestions(kpis,scores){
+  const suggestions=[
+    {icon:'📝',pid:'p1',kpiId:'commits30',check:s=>s<70,title:'Commit-Aktivität steigern',desc:'Regelmäßige, kleine Commits zeigen aktive Entwicklung. Ziel: mindestens 5 Commits pro Woche.'},
+    {icon:'⏱',pid:'p2',kpiId:'avgClose',check:s=>s<70,title:'Issue-Reaktionszeit verbessern',desc:'Schnelles Reagieren auf Issues signalisiert Projektvitalität. Triage-Prozess einführen.'},
+    {icon:'🚀',pid:'p2',kpiId:'relFreq',check:s=>s<70,title:'Release-Frequenz erhöhen',desc:'Regelmäßige Releases (auch kleine) zeigen Wartungsqualität. Semantic Versioning verwenden.'},
+    {icon:'📄',pid:'p3',kpiId:'doku',check:(s,v)=>v<100,title:'Dokumentation vervollständigen',desc:'CONTRIBUTING.md fehlt oder README ist nicht vorhanden. Onboarding-Barrier reduzieren.'},
+    {icon:'✅',pid:'p2',kpiId:'closeRate',check:s=>s<70,title:'Issue-Schließungsrate erhöhen',desc:'Viele offene Issues können potenzielle Contributors abschrecken. Triage und Labeling helfen.'},
+  ];
+
+  const relevant=suggestions.filter(s=>{
+    const pillarScore=scores[s.pid];
+    const kpiScore=scoreKpi(s.kpiId,kpis[s.kpiId],MEDIANS);
+    return pillarScore!==null&&s.check(kpiScore??0,kpis[s.kpiId]);
+  }).slice(0,3);
+
+  if(!relevant.length){
+    document.getElementById('sugCard').innerHTML=`<div class="sug-title">▸ Verbesserungsvorschläge</div><p style="font-size:.82rem;color:var(--muted)">Hervorragend — alle Kernmetriken liegen über dem Median der Top-100 Repos. 🎉</p>`;
+    return;
+  }
+
+  document.getElementById('sugCard').innerHTML=`
+    <div class="sug-title">▸ Verbesserungsvorschläge</div>
+    ${relevant.map(s=>`<div class="sug-item">
+      <span class="sug-icon">${s.icon}</span>
+      <div class="sug-body">
+        <strong>${s.title}</strong>${s.desc}
+        <div class="sug-pillar">→ Säule: ${PILLARS.find(p=>p.id===s.pid)?.label}</div>
+      </div>
+    </div>`).join('')}`;
+}
+
+/* ================================================================
+   MAIN FLOW
+================================================================ */
+function setLd(text,sub){document.getElementById('ldText').textContent=text;document.getElementById('ldSub').textContent=sub||'';}
+function reset(){document.getElementById('loadingState').classList.add('hidden');document.getElementById('errorState').classList.add('hidden');document.getElementById('results').classList.add('hidden');document.getElementById('analyzeBtn').disabled=false;document.getElementById('analyzeBtn').textContent='Analysieren →';}
+
+function parseUrl(raw){
+  const s=raw.trim().replace(/\/$/,'');
+  const m=s.match(/github\.com\/([^/]+)\/([^/?\s]+)/)||s.match(/^([^/\s]+)\/([^/?\s]+)$/);
+  return m?{owner:m[1],name:m[2]}:null;
+}
+
+async function analyze(){
+  const urlVal=document.getElementById('repoIn').value.trim();
+  const btn=document.getElementById('analyzeBtn');
+  const parsed=parseUrl(urlVal);
+  if(!parsed){alert('Ungültige Eingabe. Beispiel: facebook/react oder https://github.com/facebook/react');return;}
+
+  btn.disabled=true; btn.textContent='⏳ Lädt…';
+  apiLog=[];
+  document.getElementById('loadingState').classList.remove('hidden');
+  document.getElementById('errorState').classList.add('hidden');
+  document.getElementById('results').classList.add('hidden');
+  activePillar=null;
+
+  try{
+    if(!MEDIANS){
+      setLd('Benchmark-Daten laden…','data/benchmarks.json');
+      await loadBenchmarks();
+    }
+
+    const{owner,name}=parsed;
+    const{meta,kpis}=await fetchKpis(owner,name);
+
+    setLd('Score berechnen…','');
+    const scores=computeScores(kpis,MEDIANS||{});
+    window._kpis=kpis;
+
+    document.getElementById('loadingState').classList.add('hidden');
+    renderRepo(meta);
+    renderOverall(scores);
+    renderPillars(kpis,scores);
+    renderApiCard();
+    renderSuggestions(kpis,scores);
+    document.getElementById('results').classList.remove('hidden');
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+
+  }catch(e){
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('errMsg').textContent=e.message;
+    document.getElementById('errorState').classList.remove('hidden');
+    console.error(e);
+  }
+
+  btn.disabled=false; btn.textContent='Analysieren →';
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+document.addEventListener('DOMContentLoaded',()=>{
+  loadBenchmarks();
+  document.getElementById('repoIn').addEventListener('keydown',e=>{if(e.key==='Enter')analyze();});
+});
+</script>
+</body>
+</html>
