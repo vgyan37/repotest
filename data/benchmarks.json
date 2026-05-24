@@ -1,0 +1,58 @@
+{
+  "generated_at": "2026-05-24T18:18:23.038048+00:00",
+  "sample_size": 100,
+  "medians": {
+    "commits30": 192.0,
+    "daysInactive": 1.0,
+    "contributors": 98,
+    "closeRate": 0.3953,
+    "relFreq": 12.075,
+    "avgClose": 1.17,
+    "avgComments": 1.19,
+    "fehlerProd": 0.0238,
+    "forkRatio": 0.1367,
+    "starsTage": 60.9095
+  },
+  "top_languages": [
+    [
+      "Python",
+      20
+    ],
+    [
+      "TypeScript",
+      16
+    ],
+    [
+      "JavaScript",
+      10
+    ],
+    [
+      "Shell",
+      6
+    ],
+    [
+      "C++",
+      5
+    ],
+    [
+      "Go",
+      5
+    ],
+    [
+      "Rust",
+      5
+    ],
+    [
+      "HTML",
+      4
+    ],
+    [
+      "C",
+      2
+    ],
+    [
+      "C#",
+      2
+    ]
+  ]
+}
