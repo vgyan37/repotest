@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-05-31T08:55:31.201892+00:00",
+  "generated_at": "2026-06-01T11:41:00.447961+00:00",
   "sample_size": 100,
   "medians": {
     "commits30": 205,
-    "daysInactive": 1.0,
+    "daysInactive": 1.5,
     "contributors": 98,
-    "closeRate": 0.4722,
-    "relFreq": 12.04,
-    "avgClose": 1.025,
-    "avgComments": 1.06,
-    "fehlerProd": 0.037,
-    "forkRatio": 0.1367,
-    "starsTage": 60.8135
+    "closeRate": 0.5,
+    "relFreq": 11.76,
+    "avgClose": 1.015,
+    "avgComments": 1,
+    "fehlerProd": 0.0299,
+    "forkRatio": 0.1407,
+    "starsTage": 61.1565
   },
   "top_languages": [
     [
@@ -20,7 +20,7 @@
     ],
     [
       "TypeScript",
-      15
+      16
     ],
     [
       "JavaScript",
