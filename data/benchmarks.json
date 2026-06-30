@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-06-29T10:53:17.478684+00:00",
+  "generated_at": "2026-06-30T09:33:11.172393+00:00",
   "sample_size": 100,
   "medians": {
-    "commits30": 21,
-    "daysInactive": 1.0,
+    "commits30": 25,
+    "daysInactive": 1,
     "contributors": 98,
-    "closeRate": 0.4615,
+    "closeRate": 0.4,
     "relFreq": 12,
-    "avgClose": 0.75,
-    "avgComments": 1.21,
-    "fehlerProd": 0.125,
+    "avgClose": 1,
+    "avgComments": 1.11,
+    "fehlerProd": 0.1205,
     "forkRatio": 0.1401,
-    "starsTage": 63.0615
+    "starsTage": 63.056
   },
   "top_languages": [
     [
@@ -51,7 +51,7 @@
       3
     ],
     [
-      "Jupyter Notebook",
+      "Markdown",
       2
     ]
   ]
