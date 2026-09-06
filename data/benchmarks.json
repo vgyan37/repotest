@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-09-05T09:57:21.331143+00:00",
+  "generated_at": "2026-09-06T10:11:52.434465+00:00",
   "sample_size": 100,
   "medians": {
-    "commits30": 43.0,
-    "daysInactive": 1,
+    "commits30": 32,
+    "daysInactive": 1.0,
     "contributors": 98,
-    "closeRate": 0.3299,
+    "closeRate": 0.309,
     "relFreq": 12.3,
-    "avgClose": 0.73,
+    "avgClose": 0.61,
     "avgComments": 1.0,
-    "fehlerProd": 0.0707,
+    "fehlerProd": 0.1346,
     "forkRatio": 0.1404,
-    "starsTage": 83.112
+    "starsTage": 83.117
   },
   "top_languages": [
     [
